@@ -1,0 +1,44 @@
+# CPU-only docker-compose (for Mac M1/M2/M3/M4 or systems without NVIDIA GPU)
+
+services:
+  mutriangle:
+    build:
+      context: .
+      dockerfile: Dockerfile.cpu
+    image: mutriangle:latest
+    container_name: mutriangle
+    
+    # Default trains toy config (override with docker-compose run mutriangle train <config>)
+    # Entrypoint auto-starts TensorBoard + MLflow in background
+    
+    # Volume mounts for data persistence
+    volumes:
+      - ./.mutriangle_data:/app/.mutriangle_data
+    
+    # Port mappings for monitoring
+    ports:
+      - "6006:6006"  # TensorBoard
+      - "5000:5000"  # MLflow
+      - "8265:8265"  # Ray Dashboard
+    
+    # Shared memory for Ray
+    shm_size: '16gb'
+    
+    # Memory limit for container (16GB to prevent OOM)
+    mem_limit: '16g'
+    
+    # Environment variables
+    environment:
+      - NUMBA_DISABLE_JIT=1
+      - RAY_DISABLE_DOCKER_CPU_WARNING=1
+    
+    # Keep container running for interactive sessions
+    stdin_open: true
+    tty: true
+    
+    # Default working directory
+    working_dir: /app
+    
+    # Network mode
+    network_mode: bridge
+

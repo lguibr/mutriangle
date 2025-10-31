@@ -1,0 +1,104 @@
+# File: alphatriangle/pyproject.toml
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mutriangle"
+version = "2.1.1"
+authors = [{ name="Luis Guilherme P. M.", email="lgpelin92@gmail.com" }]
+description = "MuZero implementation for a triangle puzzle game (uses trianglengin v2+, mutrimcts, and Trieye for stats/persistence)." # Updated description
+readme = "README.md"
+license = { file="LICENSE" }
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Games/Entertainment :: Puzzle Games",
+    "Development Status :: 4 - Beta",
+]
+dependencies = [
+    # --- Core Dependencies ---
+    "trianglengin @ git+https://github.com/lguibr/trianglengin.git",
+    "mutrimcts>=0.1.0",
+    "trieye @ git+https://github.com/lguibr/trieye.git",
+    # --- RL/ML specific dependencies ---
+    "numpy>=1.20.0",
+    "torch>=2.0.0",
+    "torchvision>=0.11.0",
+    "cloudpickle>=2.0.0",
+    "numba>=0.55.0",
+    "mlflow>=1.20.0",
+    "ray[default]",
+    "pydantic>=2.0.0",
+    "typing_extensions>=4.0.0",
+    "typer[all]>=0.9.0",
+    "tensorboard>=2.10.0",
+    # --- CLI Enhancement ---
+    "rich>=13.0.0",
+    "questionary>=2.0.0", # <-- ADDED for interactive prompts
+]
+
+[project.urls]
+"Homepage" = "https://github.com/lguibr/mutriangle"
+"Bug Tracker" = "https://github.com/lguibr/mutriangle/issues"
+
+[project.scripts]
+mutriangle = "mutriangle.cli:app"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=3.0.0",
+    "pytest-mock>=3.0.0",
+    "ruff",
+    "mypy",
+    "build",
+    "twine",
+    "codecov",
+]
+
+[tool.setuptools.packages.find]
+# setuptools will automatically find alphatriangle and alphatriangle.config_mgmt
+
+[tool.setuptools.package-data]
+"*" = ["*.txt", "*.md", "*.json"]
+
+# --- Tool Configurations ---
+[tool.ruff]
+line-length = 88
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "B", "C4", "ARG", "SIM", "TCH", "PTH", "NPY"]
+ignore = ["E501", "B904"]
+[tool.ruff.format]
+quote-style = "double"
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q"
+testpaths = ["tests"]
+[tool.coverage.run]
+omit = [
+    "mutriangle/cli.py",
+    "mutriangle/logging_config.py",
+    "mutriangle/config/*",
+    "mutriangle/config_mgmt/*",
+    "mutriangle/utils/types.py",
+    "mutriangle/rl/types.py",
+    "*/__init__.py",
+    "*/README.md",
+    "run_*.py",
+    "mutriangle/rl/self_play/mcts_helpers.py",
+]
+[tool.coverage.report]
+fail_under = 40
+show_missing = true

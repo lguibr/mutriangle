@@ -1,0 +1,23 @@
+# Example docker-compose override file
+# Copy to docker-compose.override.yml and customize for your environment
+
+version: '3.8'
+
+services:
+  mutriangle:
+    # Override resource limits (uncomment to use)
+    # mem_limit: 32g
+    # cpus: 16
+    
+    # Override environment variables
+    environment:
+      - NUMBA_DISABLE_JIT=1
+      - CUDA_VISIBLE_DEVICES=0,1  # Use multiple GPUs
+      # - RAY_memory=32000000000  # 32GB Ray memory limit
+    
+    # Uncomment for automatic restart on failure
+    # restart: unless-stopped
+    
+    # Override default command (select your config)
+    command: train large --seed 42 --run-name production_run
+

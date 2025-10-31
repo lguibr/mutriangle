@@ -1,0 +1,111 @@
+# GPU-optimized docker-compose for high-end NVIDIA GPUs (RTX 5090, A100, etc.)
+# Designed for maximum performance on rented GPU machines
+
+services:
+  mutriangle:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: lguibr/mutriangle:gpu
+    container_name: mutriangle-gpu
+    
+    # GPU Configuration - Use ALL available GPUs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu, compute, utility]
+    
+    # NO memory limits - use all available host memory
+    # NO CPU limits - use all available cores
+    
+    # Large shared memory for Ray (32GB)
+    shm_size: '32gb'
+    
+    # Volume mounts for data persistence
+    volumes:
+      - ./.mutriangle_data:/app/.mutriangle_data
+    
+    # Port mappings for monitoring
+    ports:
+      - "6006:6006"  # TensorBoard
+      - "5000:5000"  # MLflow
+      - "8265:8265"  # Ray Dashboard
+    
+    # Environment variables optimized for RTX 5090 / high-end GPUs
+    environment:
+      # CUDA optimizations
+      - CUDA_VISIBLE_DEVICES=all
+      - CUDA_LAUNCH_BLOCKING=0
+      - TORCH_CUDNN_V8_API_ENABLED=1
+      - CUDA_MODULE_LOADING=LAZY
+      
+      # Enable TF32 for Ampere+ GPUs (RTX 30XX/40XX/50XX, A100)
+      - TORCH_ALLOW_TF32_CUBLAS_OVERRIDE=1
+      
+      # Numba settings
+      - NUMBA_DISABLE_JIT=1
+      - NUMBA_CUDA_USE_NVIDIA_BINDING=1
+      
+      # Ray settings - no warnings, allow high memory
+      - RAY_DISABLE_DOCKER_CPU_WARNING=1
+      - RAY_memory_monitor_refresh_ms=0
+      
+      # PyTorch performance
+      - OMP_NUM_THREADS=16
+      - MKL_NUM_THREADS=16
+      
+      # MLflow tracking
+      - MLFLOW_TRACKING_URI=file:///app/.mutriangle_data/MuTriangle/mlruns
+    
+    # Restart policy for long-running training
+    restart: unless-stopped
+    
+    # Keep container running for interactive sessions
+    stdin_open: true
+    tty: true
+    
+    # Working directory
+    working_dir: /app
+    
+    # Network mode
+    network_mode: bridge
+    
+    # Use host IPC for better Ray performance
+    ipc: host
+    
+    # Increase ulimits for Ray
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+      memlock:
+        soft: -1
+        hard: -1
+      stack:
+        soft: 67108864
+        hard: 67108864
+
+# Optional: Dedicated monitoring services (uncomment to use)
+#  tensorboard:
+#    image: lguibr/mutriangle:gpu
+#    container_name: mutriangle-tensorboard
+#    command: python -m tensorboard.main --logdir /app/.mutriangle_data/MuTriangle/runs --host 0.0.0.0 --port 6006
+#    volumes:
+#      - ./.mutriangle_data:/app/.mutriangle_data
+#    ports:
+#      - "6006:6006"
+#    restart: unless-stopped
+#
+#  mlflow:
+#    image: lguibr/mutriangle:gpu
+#    container_name: mutriangle-mlflow
+#    command: python -m mlflow.server --backend-store-uri file:///app/.mutriangle_data/MuTriangle/mlruns --host 0.0.0.0 --port 5000
+#    volumes:
+#      - ./.mutriangle_data:/app/.mutriangle_data
+#    ports:
+#      - "5000:5000"
+#    restart: unless-stopped
+
