@@ -233,7 +233,7 @@ class TrainingLoop:
             logger.debug(
                 f"Added GameHistory from worker {worker_id} to buffer (Length: {len(game_history['observations'])}, Buffer size: {buffer_size})."
             )
-            
+
             # Log phase transitions
             if (
                 not self._buffer_ready_logged
@@ -272,7 +272,9 @@ class TrainingLoop:
         try:
             # Prepare data using the local serializer
             nn_state = self.components.nn.get_weights()
-            opt_state = self.serializer.prepare_optimizer_state(self.trainer.optimizer.state_dict())
+            opt_state = self.serializer.prepare_optimizer_state(
+                self.trainer.optimizer.state_dict()
+            )
 
             # --- CORRECTED BUFFER CONTENT ---
             # Get buffer contents as a list before passing to serializer
@@ -308,7 +310,7 @@ class TrainingLoop:
     def _run_training_step(self) -> bool:
         """Runs one training step."""
         buffer_size = len(self.buffer)
-        
+
         # Phase 1: Collection - buffer not ready
         if not self.buffer.is_ready():
             # Log phase info every 10 seconds
@@ -319,11 +321,14 @@ class TrainingLoop:
                 )
                 self._last_phase_log_time = time.time()
             return False
-        
+
         # Phase 2: Warmup - buffer ready but not enough diversity for dynamics training
         warmup_threshold = self.buffer.min_size_to_train * 2
         if buffer_size < warmup_threshold:
-            if not self._warmup_logged or time.time() - self._last_phase_log_time > 10.0:
+            if (
+                not self._warmup_logged
+                or time.time() - self._last_phase_log_time > 10.0
+            ):
                 progress_pct = (buffer_size / warmup_threshold) * 100
                 logger.info(
                     f"🔥 WARMUP PHASE: Buffer {buffer_size}/{warmup_threshold} ({progress_pct:.1f}%) "
@@ -332,7 +337,7 @@ class TrainingLoop:
                 self._warmup_logged = True
                 self._last_phase_log_time = time.time()
             return False
-        
+
         # Phase 3: Active training
         if not self._training_started_logged:
             logger.info(
@@ -476,7 +481,7 @@ class TrainingLoop:
                 # Run training step if buffer is ready
                 trained_this_step = False
                 trained_this_step = self._run_training_step()
-                
+
                 if not trained_this_step:
                     time.sleep(0.05)  # Short sleep if not training yet
 
@@ -555,12 +560,12 @@ class TrainingLoop:
                     try:
                         import psutil
                         import torch
-                        
+
                         process = psutil.Process()
                         mem_info = process.memory_info()
                         mem_mb = mem_info.rss / 1024 / 1024
                         logger.info(f"💾 Memory: {mem_mb:.1f} MB process RSS")
-                        
+
                         # PyTorch memory if CUDA
                         if torch.cuda.is_available():
                             allocated = torch.cuda.memory_allocated() / 1024 / 1024
@@ -568,7 +573,7 @@ class TrainingLoop:
                             logger.info(
                                 f"💾 GPU: {allocated:.1f} MB allocated, {reserved:.1f} MB reserved"
                             )
-                        
+
                         # Send memory metrics to Trieye
                         self._send_event_async("System/Process_Memory_MB", mem_mb)
                     except Exception as e:

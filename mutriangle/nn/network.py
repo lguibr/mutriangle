@@ -350,18 +350,20 @@ class NeuralNetwork:
             hidden_state, policy_logits, value_logits = self.model.initial_inference(
                 grid_tensor, other_features_tensor
             )
-            
+
             # Convert policy logits to dict
             policy_probs = F.softmax(policy_logits, dim=1).squeeze(0).cpu().numpy()
             policy_dict = {i: float(p) for i, p in enumerate(policy_probs)}
-            
+
             # Convert value logits to scalar
-            expected_value = self._logits_to_expected_value(value_logits).squeeze(0).item()
-            
+            expected_value = (
+                self._logits_to_expected_value(value_logits).squeeze(0).item()
+            )
+
             # Note: Don't clone() here - mutrimcts C++ needs original tensor
             # The @torch.inference_mode() decorator prevents gradient tracking anyway
             return hidden_state.squeeze(0), policy_dict, expected_value
-            
+
         except Exception as e:
             logger.error(f"initial_inference failed: {e}", exc_info=True)
             raise NetworkEvaluationError(f"initial_inference failed: {e}") from e
@@ -379,26 +381,30 @@ class NeuralNetwork:
             # Add batch dimension if needed
             if hidden_state.dim() == 1:
                 hidden_state = hidden_state.unsqueeze(0)
-            
+
             # Action should be (batch_size,) = (1,) for single action
             action_tensor = torch.tensor([action], dtype=torch.long, device=self.device)
-            
-            next_hidden, reward_logits, policy_logits, value_logits = self.model.recurrent_inference(
-                hidden_state, action_tensor
+
+            next_hidden, reward_logits, policy_logits, value_logits = (
+                self.model.recurrent_inference(hidden_state, action_tensor)
             )
-            
+
             # Convert policy logits to dict
             policy_probs = F.softmax(policy_logits, dim=1).squeeze(0).cpu().numpy()
             policy_dict = {i: float(p) for i, p in enumerate(policy_probs)}
-            
+
             # Convert value and reward logits to scalars
-            expected_value = self._logits_to_expected_value(value_logits).squeeze(0).item()
-            expected_reward = self._logits_to_expected_reward(reward_logits).squeeze(0).item()
-            
+            expected_value = (
+                self._logits_to_expected_value(value_logits).squeeze(0).item()
+            )
+            expected_reward = (
+                self._logits_to_expected_reward(reward_logits).squeeze(0).item()
+            )
+
             # Note: Don't clone() here - mutrimcts C++ stores these tensors
             # The @torch.inference_mode() decorator prevents gradient tracking anyway
             return next_hidden.squeeze(0), expected_reward, policy_dict, expected_value
-            
+
         except Exception as e:
             logger.error(f"recurrent_inference failed: {e}", exc_info=True)
             raise NetworkEvaluationError(f"recurrent_inference failed: {e}") from e

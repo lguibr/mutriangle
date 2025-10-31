@@ -17,22 +17,23 @@ from mutriangle.training.worker_manager import WorkerManager
 def mock_components():
     """Create mock training components."""
     components = Mock()
-    
+
     # Mock train config
     components.train_config = TrainConfig(
         NUM_SELF_PLAY_WORKERS=3,
         RANDOM_SEED=42,
         WORKER_DEVICE="cpu",
     )
-    
+
     # Mock env config
     from trianglengin import EnvConfig
+
     components.env_config = EnvConfig(
         ROWS=8,
         COLS=15,
         NUM_SHAPE_SLOTS=3,
     )
-    
+
     # Mock model config
     components.model_config = ModelConfig(
         GRID_INPUT_CHANNELS=1,
@@ -57,7 +58,7 @@ def mock_components():
         USE_BATCH_NORM=True,
         OTHER_NN_INPUT_FEATURES_DIM=30,
     )
-    
+
     # Mock MCTS config
     components.mcts_config = MuTriangleMCTSConfig(
         max_simulations=16,
@@ -68,17 +69,17 @@ def mock_components():
         discount=1.0,
         mcts_batch_size=8,
     )
-    
+
     # Mock neural network
     components.nn = Mock()
     components.nn.get_weights.return_value = {"dummy": "weights"}
-    
+
     # Mock Trieye actor
     components.trieye_actor = Mock()
-    
+
     # Mock profiling
     components.profile_workers = False
-    
+
     return components
 
 
@@ -91,31 +92,33 @@ class TestWorkerManagerMemoryLimits:
         # Mock Ray get calls for trieye info
         mock_ray.get.side_effect = [
             "trieye_actor_test",  # actor name
-            "/test/run/dir",      # run dir
+            "/test/run/dir",  # run dir
         ]
-        
+
         # Mock ray.put
         mock_weights_ref = Mock()
         mock_ray.put.return_value = mock_weights_ref
-        
+
         # Mock SelfPlayWorker
         mock_worker_class = Mock()
         mock_worker_options = Mock()
         mock_worker_class.options.return_value = mock_worker_options
-        
-        with patch("mutriangle.training.worker_manager.SelfPlayWorker", mock_worker_class):
+
+        with patch(
+            "mutriangle.training.worker_manager.SelfPlayWorker", mock_worker_class
+        ):
             manager = WorkerManager(mock_components)
             manager.initialize_workers()
-            
+
             # Verify workers were created with memory limits
             assert mock_worker_class.options.call_count == 3  # 3 workers
-            
+
             # Check that memory limit was specified
             for call in mock_worker_class.options.call_args_list:
                 kwargs = call[1] if call[1] else call[0][0] if call[0] else {}
                 assert "num_cpus" in kwargs or (call[1] and "num_cpus" in call[1])
                 assert "memory" in kwargs or (call[1] and "memory" in call[1])
-                
+
                 # If using kwargs
                 if "memory" in kwargs:
                     # 300MB = 300 * 1024 * 1024 bytes
@@ -132,26 +135,26 @@ class TestWorkerManagerMemoryLimits:
             "trieye_actor_test",
             "/test/run/dir",
         ]
-        
+
         # Mock ray.put
         mock_ray.put.return_value = Mock()
-        
+
         # Make first worker succeed, second fail, third succeed
         mock_worker_options = Mock()
         mock_worker_class.options.return_value = mock_worker_options
-        
+
         mock_worker_1 = Mock()
         mock_worker_3 = Mock()
-        
+
         mock_worker_options.remote.side_effect = [
             mock_worker_1,
             Exception("OOM simulation"),
             mock_worker_3,
         ]
-        
+
         manager = WorkerManager(mock_components)
         manager.initialize_workers()
-        
+
         # Should have 2 active workers (1st and 3rd)
         assert len(manager.active_worker_indices) == 2
         assert 0 in manager.active_worker_indices
@@ -165,44 +168,47 @@ class TestWorkerManagerOOMHandling:
     def test_handle_oom_in_task_completion(self, mock_components):
         """Test handling of OOM errors when getting task results."""
         # Use real Ray exceptions but mock the ray module calls
-        with patch("mutriangle.training.worker_manager.ray") as mock_ray, \
-             patch("mutriangle.training.worker_manager.SelfPlayWorker") as mock_worker_class:
-            
+        with (
+            patch("mutriangle.training.worker_manager.ray") as mock_ray,
+            patch(
+                "mutriangle.training.worker_manager.SelfPlayWorker"
+            ) as mock_worker_class,
+        ):
             # Setup ray.exceptions properly (use real exceptions module)
             mock_ray.exceptions = ray.exceptions
-            
+
             # Mock Ray setup for initialization
             mock_ray.get.side_effect = [
                 "trieye_actor_test",
                 "/test/run/dir",
             ]
             mock_ray.put.return_value = Mock()
-            
+
             # Create worker manager with mock workers
             mock_worker = Mock()
             mock_worker_options = Mock()
             mock_worker_options.remote.return_value = mock_worker
             mock_worker_class.options.return_value = mock_worker_options
-            
+
             manager = WorkerManager(mock_components)
             manager.initialize_workers()
-            
+
             # Simulate an OOM error when getting results
             mock_task_ref = Mock()
             manager.worker_tasks[mock_task_ref] = 0  # Worker 0
-            
+
             # Mock ray.wait to return our task ref as ready
             mock_ray.wait.return_value = ([mock_task_ref], [])
-            
+
             # Mock ray.get to raise OOM after initialization calls
             mock_ray.get.side_effect = OutOfMemoryError(
                 "Task was killed due to the node running low on memory."
             )
-            
+
             # This should be handled in get_completed_tasks
             # The method catches exceptions and returns them as results
             results = manager.get_completed_tasks(timeout=0.1)
-            
+
             # Should return list with the exception
             assert isinstance(results, list)
             if results:
@@ -228,18 +234,18 @@ class TestWorkerManagerResourceManagement:
             "/test/run/dir",
         ]
         mock_ray.put.return_value = Mock()
-        
+
         # Create workers
         mock_worker_options = Mock()
         mock_worker_options.remote.return_value = Mock()
         mock_worker_class.options.return_value = mock_worker_options
-        
+
         # Set specific worker count
         mock_components.train_config.NUM_SELF_PLAY_WORKERS = 5
-        
+
         manager = WorkerManager(mock_components)
         manager.initialize_workers()
-        
+
         # Should have 5 workers
         assert len(manager.workers) == 5
         assert len(manager.active_worker_indices) == 5
@@ -255,21 +261,21 @@ class TestWorkerManagerResourceManagement:
             "trieye_actor_test",
             "/test/run/dir",
         ]
-        
+
         mock_weights_ref = Mock()
         mock_ray.put.return_value = mock_weights_ref
-        
+
         # Create workers
         mock_worker_options = Mock()
         mock_worker_options.remote.return_value = Mock()
         mock_worker_class.options.return_value = mock_worker_options
-        
+
         manager = WorkerManager(mock_components)
         manager.initialize_workers()
-        
+
         # Verify ray.put was called once for weights (not per worker)
         assert mock_ray.put.call_count == 1
-        
+
         # Verify all workers got the same weights reference
         assert mock_worker_options.remote.call_count == 3
         for call in mock_worker_options.remote.call_args_list:
@@ -292,22 +298,22 @@ class TestWorkerManagerTaskSubmission:
             "/test/run/dir",
         ]
         mock_ray.put.return_value = Mock()
-        
+
         # Create mock worker with remote method
         mock_worker = Mock()
         mock_task_ref = Mock()
         mock_worker.run_episode.remote.return_value = mock_task_ref
-        
+
         mock_worker_options = Mock()
         mock_worker_options.remote.return_value = mock_worker
         mock_worker_class.options.return_value = mock_worker_options
-        
+
         manager = WorkerManager(mock_components)
         manager.initialize_workers()
-        
+
         # Submit task to worker 0
         manager.submit_task(0)
-        
+
         # Verify task was submitted
         assert mock_worker.run_episode.remote.called
         assert mock_task_ref in manager.worker_tasks
@@ -325,22 +331,21 @@ class TestWorkerManagerTaskSubmission:
             "/test/run/dir",
         ]
         mock_ray.put.return_value = Mock()
-        
+
         mock_worker = Mock()
         mock_worker_options = Mock()
         mock_worker_options.remote.return_value = mock_worker
         mock_worker_class.options.return_value = mock_worker_options
-        
+
         manager = WorkerManager(mock_components)
         manager.initialize_workers()
-        
+
         # Remove worker 1 from active set
         manager.active_worker_indices.discard(1)
-        
+
         # Try to submit task to inactive worker
         initial_task_count = len(manager.worker_tasks)
         manager.submit_task(1)
-        
+
         # Should not create new task
         assert len(manager.worker_tasks) == initial_task_count
-

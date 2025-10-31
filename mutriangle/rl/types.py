@@ -38,5 +38,4 @@ class SelfPlayResult(BaseModel):
     )
 
 
-
 SelfPlayResult.model_rebuild(force=True)

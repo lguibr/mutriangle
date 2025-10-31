@@ -212,7 +212,7 @@ class Trainer:
                     logger.warning(
                         f"Action {action} out of bounds in policy target for sample {i}."
                     )
-        
+
         return policy_tensor
 
     def _calculate_target_distribution(
@@ -378,13 +378,10 @@ class Trainer:
             # This allows gradients to flow back through all K unroll steps to the representation network
             def recurrent_forward(h_state, act):
                 return self.model.recurrent_inference(h_state, act)
-            
+
             hidden_states, reward_logits_k, policy_logits_k, value_logits_k = (
                 checkpoint(
-                    recurrent_forward,
-                    hidden_states,
-                    actions_k,
-                    use_reentrant=False
+                    recurrent_forward, hidden_states, actions_k, use_reentrant=False
                 )
             )
 

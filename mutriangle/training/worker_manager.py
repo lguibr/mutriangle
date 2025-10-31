@@ -64,7 +64,9 @@ class WorkerManager:
 
                 worker = SelfPlayWorker.options(
                     num_cpus=1,
-                    memory=300 * 1024 * 1024,  # 300MB per worker (helps Ray prevent OOM)
+                    memory=300
+                    * 1024
+                    * 1024,  # 300MB per worker (helps Ray prevent OOM)
                 ).remote(
                     actor_id=i,
                     env_config=self.components.env_config,

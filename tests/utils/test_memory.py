@@ -42,9 +42,9 @@ class TestEstimateWorkerMemory:
             USE_BATCH_NORM=True,
             OTHER_NN_INPUT_FEATURES_DIM=30,
         )
-        
+
         memory_mb = estimate_worker_memory(config)
-        
+
         # Small model should be < 200MB
         assert 50 < memory_mb < 200
         assert isinstance(memory_mb, int)
@@ -74,9 +74,9 @@ class TestEstimateWorkerMemory:
             USE_BATCH_NORM=True,
             OTHER_NN_INPUT_FEATURES_DIM=30,
         )
-        
+
         memory_mb = estimate_worker_memory(config)
-        
+
         # Medium model should be 200-400MB
         assert 150 < memory_mb < 500
         assert isinstance(memory_mb, int)
@@ -106,9 +106,9 @@ class TestEstimateWorkerMemory:
             USE_BATCH_NORM=True,
             OTHER_NN_INPUT_FEATURES_DIM=30,
         )
-        
+
         memory_mb = estimate_worker_memory(config)
-        
+
         # Large model with transformer should be > 400MB
         assert memory_mb > 400
         assert isinstance(memory_mb, int)
@@ -142,7 +142,7 @@ class TestCalculateMaxWorkers:
             USE_BATCH_NORM=True,
             OTHER_NN_INPUT_FEATURES_DIM=30,
         )
-        
+
         # 16GB available
         max_workers = calculate_max_workers(
             available_mb=16000,
@@ -150,7 +150,7 @@ class TestCalculateMaxWorkers:
             reserve_mb=2048,
             safety_margin=0.3,
         )
-        
+
         # Should be able to fit several workers
         assert max_workers >= 3
         assert isinstance(max_workers, int)
@@ -180,7 +180,7 @@ class TestCalculateMaxWorkers:
             USE_BATCH_NORM=True,
             OTHER_NN_INPUT_FEATURES_DIM=30,
         )
-        
+
         # Only 4GB available
         max_workers = calculate_max_workers(
             available_mb=4000,
@@ -188,7 +188,7 @@ class TestCalculateMaxWorkers:
             reserve_mb=2048,
             safety_margin=0.3,
         )
-        
+
         # Should return at least 1 even with low memory
         assert max_workers >= 1
         assert isinstance(max_workers, int)
@@ -218,7 +218,7 @@ class TestCalculateMaxWorkers:
             USE_BATCH_NORM=True,
             OTHER_NN_INPUT_FEATURES_DIM=30,
         )
-        
+
         # Very low memory (1GB)
         max_workers = calculate_max_workers(
             available_mb=1000,
@@ -226,7 +226,7 @@ class TestCalculateMaxWorkers:
             reserve_mb=2048,
             safety_margin=0.3,
         )
-        
+
         # Should always return at least 1
         assert max_workers == 1
 
@@ -255,7 +255,7 @@ class TestCalculateMaxWorkers:
             USE_BATCH_NORM=True,
             OTHER_NN_INPUT_FEATURES_DIM=30,
         )
-        
+
         # 8GB available, 50% safety margin
         max_workers_high_margin = calculate_max_workers(
             available_mb=8000,
@@ -263,7 +263,7 @@ class TestCalculateMaxWorkers:
             reserve_mb=1024,
             safety_margin=0.5,
         )
-        
+
         # 8GB available, 10% safety margin
         max_workers_low_margin = calculate_max_workers(
             available_mb=8000,
@@ -271,7 +271,7 @@ class TestCalculateMaxWorkers:
             reserve_mb=1024,
             safety_margin=0.1,
         )
-        
+
         # Lower margin should allow more workers
         assert max_workers_low_margin > max_workers_high_margin
 
@@ -282,11 +282,11 @@ class TestGetAvailableMemory:
     def test_get_available_memory(self):
         """Test that we can get available memory."""
         available_mb = get_available_memory()
-        
+
         # Should return a positive integer
         assert isinstance(available_mb, int)
         assert available_mb > 0
-        
+
         # Should be at least 512MB (sanity check)
         assert available_mb >= 512
 
@@ -319,17 +319,17 @@ class TestCalculateRecommendedWorkers:
             USE_BATCH_NORM=True,
             OTHER_NN_INPUT_FEATURES_DIM=30,
         )
-        
+
         recommended = calculate_recommended_workers(
             model_config=config,
             cpu_count=8,
             use_ray_memory=False,  # Use system memory (don't need Ray)
         )
-        
+
         # Should return a positive integer
         assert isinstance(recommended, int)
         assert recommended >= 1
-        
+
         # With 8 CPUs, should get at most 6 (8 - 2 reserved)
         assert recommended <= 6
 
@@ -358,13 +358,12 @@ class TestCalculateRecommendedWorkers:
             USE_BATCH_NORM=True,
             OTHER_NN_INPUT_FEATURES_DIM=30,
         )
-        
+
         recommended = calculate_recommended_workers(
             model_config=config,
             cpu_count=2,
             use_ray_memory=False,
         )
-        
+
         # With 2 CPUs, should get at least 1 (2 - 2 reserved = 0, but min is 1)
         assert recommended >= 1
-

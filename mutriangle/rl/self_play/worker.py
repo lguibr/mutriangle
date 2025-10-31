@@ -342,7 +342,7 @@ class SelfPlayWorker:
                         config=self.mcts_config,
                     )
                     avg_depth_this_step = 0.0  # Depth not returned by mutrimcts API
-                    
+
                     logger.debug(
                         f"Worker {self.actor_id}: Step {current_step_in_loop}: MCTS returned visit_counts: {len(visit_counts)} actions, Avg Depth: {avg_depth_this_step:.2f}"
                     )
@@ -378,7 +378,6 @@ class SelfPlayWorker:
                         f"Worker {self.actor_id}: Step {current_step_in_loop}: MCTS returned empty visit counts. Cannot proceed."
                     )
                     break
-                
 
                 action_selection_start_time = time.monotonic()
                 # Temperature annealing based on TRAINING progress, not game steps
@@ -398,7 +397,7 @@ class SelfPlayWorker:
                     # Use mcts_policy directly from MCTS (already normalized)
                     # This is more accurate and avoids redundant computation
                     policy_target = mcts_policy
-                    
+
                     # Select action from visit counts with temperature
                     action = select_action_from_visits(
                         visit_counts, temperature=selection_temp
@@ -673,4 +672,3 @@ class SelfPlayWorker:
             f"Worker {self.actor_id}: Finished run_episode. Returning result with GameHistory length: {len(result.game_history['observations'])}"
         )
         return result
-

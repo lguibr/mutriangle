@@ -135,17 +135,19 @@ class GameHistoryBuffer:
         T = len(game["actions"])
         raw_rewards = game["rewards"]  # Now stores raw rewards, not n-step returns
         root_values = game["root_values"]
-        
+
         # Calculate fresh n-step returns for this sample
         n_step = self.config.N_STEP_RETURNS
         gamma = self.config.GAMMA
-        
+
         # Extract data for K unroll steps (actual available steps, no padding yet)
         actual_steps = min(unroll_steps, T - start_idx)
         actions = game["actions"][start_idx : start_idx + actual_steps]
-        target_policies = game["mcts_policies"][start_idx : start_idx + actual_steps + 1]
+        target_policies = game["mcts_policies"][
+            start_idx : start_idx + actual_steps + 1
+        ]
         target_values_raw = root_values[start_idx : start_idx + actual_steps + 1]
-        
+
         # Calculate n-step returns for each position in the unroll
         target_rewards = []
         for k in range(actual_steps):
@@ -153,20 +155,26 @@ class GameHistoryBuffer:
             G = 0.0
             # Sum discounted rewards for up to n steps
             for step in range(min(n_step, T - pos)):
-                G += (gamma ** step) * raw_rewards[pos + step]
+                G += (gamma**step) * raw_rewards[pos + step]
             # Bootstrap from value if we didn't reach episode end
             if pos + n_step < T:
                 bootstrap_idx = pos + n_step
-                bootstrap_value = root_values[bootstrap_idx] if bootstrap_idx < len(root_values) else 0.0
-                G += (gamma ** n_step) * bootstrap_value
+                bootstrap_value = (
+                    root_values[bootstrap_idx]
+                    if bootstrap_idx < len(root_values)
+                    else 0.0
+                )
+                G += (gamma**n_step) * bootstrap_value
             target_rewards.append(G)
-        
+
         # Pad if necessary (when near end of episode) - pad with last valid values
         while len(actions) < unroll_steps:
             actions.append(actions[-1] if actions else 0)  # Repeat last action
             target_rewards.append(0.0)  # Zero for padding
             target_policies.append({})  # Empty policy
-            target_values_raw.append(target_values_raw[-1] if target_values_raw else 0.0)
+            target_values_raw.append(
+                target_values_raw[-1] if target_values_raw else 0.0
+            )
 
         # Ensure we have K+1 targets
         while len(target_policies) < unroll_steps + 1:
