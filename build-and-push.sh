@@ -31,9 +31,10 @@ fi
 
 echo ""
 echo "========================================"
-echo "Step 1: Building GPU Image"
+echo "Step 1: Building GPU Image (linux/amd64)"
 echo "========================================"
 docker build ${NO_CACHE_FLAG} \
+    --platform linux/amd64 \
     -f Dockerfile \
     -t ${DOCKER_USERNAME}/${IMAGE_NAME}:gpu \
     -t ${DOCKER_USERNAME}/${IMAGE_NAME}:${VERSION}-gpu \
@@ -42,9 +43,10 @@ docker build ${NO_CACHE_FLAG} \
 
 echo ""
 echo "========================================"
-echo "Step 2: Building CPU Image"
+echo "Step 2: Building CPU Image (linux/amd64)"
 echo "========================================"
 docker build ${NO_CACHE_FLAG} \
+    --platform linux/amd64 \
     -f Dockerfile.cpu \
     -t ${DOCKER_USERNAME}/${IMAGE_NAME}:cpu \
     -t ${DOCKER_USERNAME}/${IMAGE_NAME}:${VERSION}-cpu \
